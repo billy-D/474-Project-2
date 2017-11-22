@@ -8,7 +8,11 @@ Given a linked list with only the non-zero elements of a sparse matrix and their
 - Docker
 - MPI Image
 
-## Procedures
-1. 
+## Procedures (sketch)
+1. Create the linked list, given a integer value and its coordinates and the matrix
+2. Determine the dimensions of the matrix based off of the max of the coordinates i and j
+3. Create the original matrix
+4. Transpose the original matrix
+5. 
 
 
