@@ -11,13 +11,15 @@ class Node(){
     Node(int = 0);
     Node * nextPtr;
     int info;
-    int position;
+    int position_i;
+    int position_j;
 };
 
 // Define the constructor
-Node::Node(int temp_data, int temp_pos){
+Node::Node(int temp_data, int temp_pos_i, int temp_pos_j){
     info = temp_data;
-    position = temp_pos;
+    position_i = temp_pos_i;
+    position_j = temp_pos_j;
     nextPtr = 0;
 }
 

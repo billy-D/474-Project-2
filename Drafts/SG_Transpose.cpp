@@ -10,7 +10,7 @@ using namespace std;
 
 // Function Declarations
 void printList(Node*);
-void insert(Node*&, int, int);
+void insert(Node*&, int, int, int);
 void deleteList(Node*&);
 
 
@@ -22,13 +22,17 @@ int main(){
     int value = 0;
 
     //pass in the position of the elmement corresponding to sparse matrix
-    int pos = 0;
+    int pos_i = 0;
+    int pos_j = 0;
 
     //menu choice
 	char choice = ' ';
 
 	//used to store the return value from find, assign it to be false by default
     bool returnValue = false;
+
+    // For MPI operations
+    int rank, result;
     
     do 
 	{
@@ -51,10 +55,11 @@ int main(){
 			cin >> value;
 
             cout << "Position corresponding to sparse matrix: ";
-            cin >> pos;
+            cin >> pos_i;
+            cin >> pos_j;
 
 			//call the insert function
-			insert(head, value, pos);
+			insert(head, value, pos_i, pos_j);
 			break;
 
 		case 'P':
@@ -87,7 +92,17 @@ int main(){
 
 
 
+
+
+
+
+
+
+
+
     //---------------------------------------------------------------------------
+
+
 
     //Once we are done, deallocate used memory before exiting
     deleteList(head);
@@ -117,7 +132,7 @@ function: insert
 parameters: A pointer passed by reference and integer value 
 purpose: Inserting values as the head of the linked list
 -------------------------------------------------------*/
-void insert(Node*&head, int value, int pos){
+void insert(Node*&head, int value, int pos_i, int pos_j){
 
     //check if the value is non-zero
     if (value > 0){
@@ -132,7 +147,8 @@ void insert(Node*&head, int value, int pos){
 	    currentPtr->info = value;
 
         //give the new node the position corresponding to matrix
-        currentPtr->position = pos;
+        currentPtr->position_i = pos_i;
+        currentPtr->position_j = pos_j;
 
 	    //set the new node nextptr to be the head to link the new node with previous node
 	    currentPtr->nextPtr = head;
@@ -154,15 +170,16 @@ parameters: A pointer
 purpose: Printing all the values in the linked list
 -------------------------------------------------------*/
 void printList(Node*head){
-    
+
 	//declared a new pointer and assign it to head
 	Node*currentPtr = head;
 
 	//while we haven't reached the end of the list
 	while (currentPtr != nullptr){
 		//print the content of the linked list
-		cout << currentPtr->info << " : ";
-        cout << currentPtr->position << " ";
+		cout << currentPtr->info << ":( ";
+        cout << currentPtr->position_i << ",";
+        cout << currentPtr->position_j << ") ";
 
 		//move onto the next node
 		currentPtr = currentPtr->nextPtr;
