@@ -10,7 +10,7 @@ using namespace std;
 
 // Function Declarations
 void printList(Node*);
-void insert(Node*&, int);
+void insert(Node*&, int, int);
 void deleteList(Node*&);
 
 
@@ -20,6 +20,9 @@ int main(){
 
 	//used to pass a value into to add to list
     int value = 0;
+
+    //pass in the position of the elmement corresponding to sparse matrix
+    int pos = 0;
 
     //menu choice
 	char choice = ' ';
@@ -47,8 +50,11 @@ int main(){
 			cout << "Enter a value to insert: ";
 			cin >> value;
 
+            cout << "Position corresponding to sparse matrix: ";
+            cin >> pos;
+
 			//call the insert function
-			insert(head, value);
+			insert(head, value, pos);
 			break;
 
 		case 'P':
@@ -111,23 +117,34 @@ function: insert
 parameters: A pointer passed by reference and integer value 
 purpose: Inserting values as the head of the linked list
 -------------------------------------------------------*/
-void insert(Node*&head, int value){
-	//declare a new pointer and assign it to head
-	Node*currentPtr = head;
+void insert(Node*&head, int value, int pos){
 
-	//make a new node 
-	currentPtr = new Node;
+    //check if the value is non-zero
+    if (value > 0){
 
-	//give the new node a value
-	currentPtr->info = value;
+        //declare a new pointer and assign it to head
+	    Node*currentPtr = head;
 
-	//set the new node nextptr to be the head to link the new node with previous node
-	currentPtr->nextPtr = head;
+	    //make a new node 
+	    currentPtr = new Node;
 
-	//set the new node to be the new head
-	head = currentPtr;
+	    //give the new node a value
+	    currentPtr->info = value;
 
-	cout << value << " is added to the list!\n";
+        //give the new node the position corresponding to matrix
+        currentPtr->position = pos;
+
+	    //set the new node nextptr to be the head to link the new node with previous node
+	    currentPtr->nextPtr = head;
+
+	    //set the new node to be the new head
+	    head = currentPtr;
+
+	    cout << value << " is added to the list!\n";
+    }
+    else {
+        cout << "Insert: NON-ZERO elements!\n";
+    }
 }
 
 
@@ -137,13 +154,15 @@ parameters: A pointer
 purpose: Printing all the values in the linked list
 -------------------------------------------------------*/
 void printList(Node*head){
+    
 	//declared a new pointer and assign it to head
 	Node*currentPtr = head;
 
 	//while we haven't reached the end of the list
 	while (currentPtr != nullptr){
 		//print the content of the linked list
-		cout << currentPtr->info << " ";
+		cout << currentPtr->info << " : ";
+        cout << currentPtr->position << " ";
 
 		//move onto the next node
 		currentPtr = currentPtr->nextPtr;
@@ -163,10 +182,10 @@ purpose: deleting every node in the linked list
 void deleteList(Node*&head){
 
     if(head == nullptr){
-        cout << "List is empty...\n";
+        cout << "List is empty, no need to worry!\n";
     }
     else{
-        cout << "List is not empty!\n";
+        cout << "ERROR: List is not empty, PANIC!\n";
 
         //Need a loop to iterate through each Node in the list
 	    while (head != nullptr){
@@ -181,8 +200,11 @@ void deleteList(Node*&head){
 		    Temp->nextPtr = nullptr;
 		    delete Temp;
 
+            // set temp to be null again for the next round of node deletions
 		    Temp = nullptr;
 	    }
+
+        cout << "JK, its all good!"
 
     }
 
