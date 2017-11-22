@@ -5,6 +5,7 @@ File: SG_Transpose.cpp
 #include <iostream>
 #include "Node.h"
 #include <mpi.h>
+using namespace std;
 
 
 // Function Declarations
@@ -40,7 +41,7 @@ int main(){
 		//spaceing between menu and user interactions
 		cout << endl;
 
-		switch (choice) {
+		switch (choice){
 		case 'A':
 			//insert a value at the top of the list as the head
 			cout << "Enter a value to insert: ";
@@ -48,57 +49,42 @@ int main(){
 
 			//call the insert function
 			insert(head, value);
-
-
 			break;
+
 		case 'P':
 			//check if the list is empty
-			if (head == nullptr)
-			{
+			if (head == nullptr){
 				cout << "List is empty at the moment...\n";
 			}
-			else
-			{
+			else{
 				//print the linked list by calling the printList function
 				cout << "List of Nodes: Newest -> Oldest\n";
 				printList(head);
 			}
-			system("PAUSE");
-			system("CLS");
 			break;
-
-		case 'Q':
-			//quit
-			
-			if (head == nullptr)
-			{
-				cout << "List is empty, good to go!\n";
-			}
-			else
-			{
-				//print an error message
-				cout << "List still exist, but no worries calling deleteList function... " << endl;
-
-				//call deleteList again to kill list
-				deleteList(head);
-			}
-			
-			system("PAUSE");
-			system("CLS");
-			break;
+        case 'Q':
+            cout << "Finishing setup, exiting interactive menu...\n";
 
 		default:
 			//error message if user enters something different
 			cout << "Invalid option!\n";
-			system("PAUSE");
-			system("CLS");
 			break;
 		}
 
 
 	} while (choice != 'Q');
-
     cout << endl;
+
+    //----------------Begin MPI operations here----------------------------------
+
+
+
+
+
+    //---------------------------------------------------------------------------
+
+    //Once we are done, deallocate used memory before exiting
+    deleteList(head);
     return 0;
 }
 
@@ -108,12 +94,11 @@ function: listOptions
 parameters: none
 purpose: provide user with a list of choices to use
 -------------------------------------------------------*/
-void listOptions()
-{
+void listOptions(){
 	cout << "=============Menu=================\n";
 	cout << "A -> Add\n";
 	cout << "P -> Print\n";
-	cout << "Q -> Quit\n";
+    cout << "Q -> Quit Setup + Begin MPI OP's\n";
 	cout << "===================================\n";
 
 	cout << "Enter a valid option: ";
@@ -126,8 +111,7 @@ function: insert
 parameters: A pointer passed by reference and integer value 
 purpose: Inserting values as the head of the linked list
 -------------------------------------------------------*/
-void insert(Node*&head, int value)
-{
+void insert(Node*&head, int value){
 	//declare a new pointer and assign it to head
 	Node*currentPtr = head;
 
@@ -152,14 +136,12 @@ function: printList
 parameters: A pointer
 purpose: Printing all the values in the linked list
 -------------------------------------------------------*/
-void printList(Node*head)
-{
+void printList(Node*head){
 	//declared a new pointer and assign it to head
 	Node*currentPtr = head;
 
 	//while we haven't reached the end of the list
-	while (currentPtr != nullptr)
-	{
+	while (currentPtr != nullptr){
 		//print the content of the linked list
 		cout << currentPtr->info << " ";
 
@@ -178,24 +160,30 @@ function: deleteList
 parameters: A pointer that is a passed by reference 
 purpose: deleting every node in the linked list
 -------------------------------------------------------*/
-void deleteList(Node*&head)
-{
+void deleteList(Node*&head){
 
-	//Need a loop to iterate through each Node in the list
-	while (head != nullptr)
-	{
+    if(head == nullptr){
+        cout << "List is empty...\n";
+    }
+    else{
+        cout << "List is not empty!\n";
 
-		//Need a pointer to use to delete Node
-		Node*Temp = head;
+        //Need a loop to iterate through each Node in the list
+	    while (head != nullptr){
 
-		//At the top of the list already, need to move the head pointer to the next node
-		head = head->nextPtr;
+		    //Need a pointer to use to delete Node
+		    Node*Temp = head;
 
-		//Temp is still linked to the next node, cut its link to the rest of the list
-		Temp->nextPtr = nullptr;
-		delete Temp;
+		    //At the top of the list already, need to move the head pointer to the next node
+		    head = head->nextPtr;
 
-		Temp = nullptr;
-	}
+		    //Temp is still linked to the next node, cut its link to the rest of the list
+		    Temp->nextPtr = nullptr;
+		    delete Temp;
+
+		    Temp = nullptr;
+	    }
+
+    }
 
 }

@@ -3,6 +3,7 @@ Names: Billy Dang, Sean Mckean, Hassan Hamod
 File: Node.h
 ----------------------------------------------*/
 #include <iostream>
+using namespace std;
 
 
 // Class will help us make nodes for our linked list
