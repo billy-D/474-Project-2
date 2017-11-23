@@ -4,7 +4,7 @@ File: SG_Transpose.cpp
 ----------------------------------------------*/
 #include <iostream>
 #include "Node.h"
-// #include <mpi.h>
+//#include <mpi.h>
 using namespace std;
 
 
@@ -31,6 +31,16 @@ int main() {
 
 	//used to store the return value from find, assign it to be false by default
 	bool returnValue = false;
+
+	// array to hold the coordinates, and determine max
+	int max_i = 0;
+	int max_j = 0;
+	int array_i[30];
+	int array_j[30];
+	int index = 0;
+
+	//Original matrix, with some arbitrary value that will change 
+	int orig_Matrix[10][10]; 
 
 	// For MPI operations
 	int rank, result;
@@ -61,6 +71,18 @@ int main() {
 
 			//call the insert function
 			insert(head, value, pos_i, pos_j);
+
+			if (index < 30) {
+				array_i[index] = pos_i;
+				array_j[index] = pos_j;
+
+				//increment index
+				index++;
+			}
+			else {
+				cout << "Error: array_i and array_j, reached max capacity\n";
+			}
+
 			break;
 
 		case 'P':
@@ -76,6 +98,21 @@ int main() {
 			break;
 		case 'Q':
 			cout << "Finishing setup, exiting interactive menu...\n";
+			max_i = array_i[0];
+			max_j = array_j[0];
+
+			//find max
+			for (int a = 0; a < index; a++) {
+				if (max_i < array_i[a]) {
+					max_i = array_i[a];
+				}
+				if (max_j < array_j[a]) {
+					max_j = array_j[a];
+				}
+			}
+
+			//cout << "Matrix Dimensions: " << max_i << " x " << max_j << "\n";
+			system("PAUSE");
 
 		default:
 			//error message if user enters something different
@@ -86,6 +123,10 @@ int main() {
 
 	} while (choice != 'Q');
 	cout << endl;
+
+
+	// create the matrix with new dimensions
+	orig_Matrix[max_i][max_j];
 
 	//----------------Begin MPI operations here----------------------------------
 
@@ -107,6 +148,7 @@ int main() {
 
 	//Once we are done, deallocate used memory before exiting
 	deleteList(head);
+	system("PAUSE");
 	return 0;
 }
 
