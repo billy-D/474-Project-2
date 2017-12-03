@@ -18,10 +18,12 @@ Linked List - http://www.zentut.com/c-tutorial/c-linked-list/
 #include <string.h>
 #include <time.h>
 
+
 #define min(a,b) \
    ({ __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
      _a < _b ? _a : _b; })
+
 
 typedef struct node{
 	int i, j, value;
@@ -91,6 +93,34 @@ void dispose(node *head)
 
 
 
+/**
+ * This method is used to divide up the matrix into chunks to be
+ * processed by each thread.  I borrowed upon the para_range method
+ * presented in class.
+ *
+ * It should be noted that this function does not work for all values
+ * of size.  I'm not entirely sure what's wrong but after playing with
+ * several values it doesn't always work.
+ *
+ * n1 is the lowest value of iteration variable
+ * n2 is the highest value of iteration variable
+ * size is # cores
+ * rank the rank of the core in the communicator
+ */
+int chunk_size(int n1, int n2, int size, int rank)
+{
+	int iwork1, iwork2, start, end;
+	iwork1 = (n2 - n1 + 1) / size;
+	iwork2 = ((n2 - n1 + 1) % size);
+	start = rank * iwork1 + n1 + min(rank, iwork2);
+	end = start + iwork1 - 1;
+	if(iwork2 > rank)
+		end = end + 1;
+
+	return end - start + 1;
+}
+
+
 
 int main(int argc, char *argv[])
 {
@@ -115,8 +145,13 @@ int main(int argc, char *argv[])
 
 	//variables for MPI, some values assign are temps
 	//NOTE: May need to change some values
-	int rank = 0;
-	int size = 0;
+	int rank;
+	int size;
+
+	//Initialize MPI and get rank and size
+	MPI_Init(NULL, NULL);
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	MPI_Comm_size(MPI_COMM_WORLD, &size);
 
 	if(size == 1)
 	{
@@ -146,7 +181,7 @@ int main(int argc, char *argv[])
 		//Get number of columns out of 100 byte buffer from line two in the matrix
 		m_Col = atoi(fgets(line, BUFFER, fp));
 
-		//get the number of rows fort the matrix
+		//get the number of rows for the matrix
 		f_row = m_Col * m_Row;
 
 
@@ -197,21 +232,174 @@ int main(int argc, char *argv[])
 	}
 
 
+	//-----------------------HERE: Main MPI Operation-----------------------
 
+	//Broadcast the matrix dimensions to all processes.
+	MPI_Bcast(&m_Row, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Bcast(&m_Col, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-	//Main MPI Operation
+	//Determine the chunk size for each process
+	//NOTE: Already calculated above when determining how many rows to iterate to read file
+	//int loc_dim = row * col;
+	int loc dim = f_row;
 
+	if(rank != 0)
+	{
+		//Accommodate process 0 not processing any of the matrix rows.
+		if(size < row)
+			loc_dim = chunk_size(1, row + 2, size, rank);
+		else if(size == row)
+			loc_dim = chunk_size(1, row + 2, size, rank);
+		else
+			loc_dim = chunk_size(1, row + 1, size, rank);
+	}
 
+	//Setup the sparse array
+	int sparseArrayRow[loc_dim * col];
+	int sparseArrayCol[loc_dim * col];
+	int sparseArrayValue[loc_dim * col];
+	int sparseArraySize = 0;
 
+	MPI_Request ireq;
+	MPI_Status istatus;
 
+	//Use rank 0 to distribute out the work evenly among processes
+	if(rank == 0){
+		//Wait for each process to request a certain number of rows to process
+		int rowsProcessed = 0;
+		for(int i = 1; i < size; i++){
+			int numRowsRequested = 0;
+			MPI_Irecv(&numRowsRequested, 1, MPI_INT, i, 0, MPI_COMM_WORLD, &ireq);
+			MPI_Wait(&ireq, &istatus);
+
+			//If the process requested zero rows because we have more processes than rows,
+			//continue onto the next request
+			if(numRowsRequested == 0)
+			{
+				continue;
+			}
+			else
+			{
+				//Send back the next chunk of data to be processed based on the requested
+				//chunk size.
+				MPI_Isend(matrix[rowsProcessed], numRowsRequested * col, MPI_INT, i, 0, MPI_COMM_WORLD, &ireq);
+				MPI_Isend(&rowsProcessed, 1, MPI_INT, i, 0, MPI_COMM_WORLD, &ireq);
+				rowsProcessed += numRowsRequested;
+			}
+		}
+	}
+	///////////TRANSPOSE GOES HERE///////////////////////////	
+	else
+	{
+		if(loc_dim == 0)
+		{
+			//if the loc_dim value is 0 because there's not enough data then just
+			//send a request for zero records to the root process knows not to wait.
+			MPI_Isend(&loc_dim, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &ireq);
+		}
+		else{
+			//Request the number of rows this process is ready to process.
+			MPI_Isend(&loc_dim, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &ireq);
+
+			//Receive back the requested number of rows, along with which which particular
+			//row I'm starting with.
+			int tempArray[loc_dim][col], startRow = 0;
+			MPI_Irecv(&tempArray, loc_dim * col, MPI_INT, 0, 0, MPI_COMM_WORLD, &ireq);
+			MPI_Wait(&ireq, &istatus);
+			MPI_Irecv(&startRow, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &ireq);
+			MPI_Wait(&ireq, &istatus);
+
+			//Add only non-zero values to the sparse array.
+			for(int i = 0; i < loc_dim; i++)
+			{
+				for(int j = 0; j < col; j++)
+				{
+					int temp;
+					temp = row;
+					row = col;
+					col = temp;
+					
+				}
+			}
+		}
+	}
+	/////////////////////////END TRANSPOSE/////////////////////////////////
+	MPI_Barrier(MPI_COMM_WORLD);	//This may not be necessary
+
+	//The parent process will wait for the children to send in their resulting sparse arrays
+	//so that it can consolidate them into a single list.
+	if(rank == 0){
+		int numRows;
+
+		//x are the processes
+		int x = 0;
+		if(size <= row)
+			x = size;
+		else
+			x = row + 1;
+
+		int totalNodes = 0;
+		struct node *root;
+		struct node *child;
+		for(int i = 1; i < x; i++){
+
+			MPI_Irecv(&sparseArrayRow, row * col, MPI_INT, i, 0, MPI_COMM_WORLD, &ireq);
+			MPI_Wait(&ireq, &istatus);
+			MPI_Get_count(&istatus, MPI_INT, &numRows);
+			MPI_Irecv(&sparseArrayCol, row * col, MPI_INT, i, 0, MPI_COMM_WORLD, &ireq);
+			MPI_Wait(&ireq, &istatus);
+			MPI_Irecv(&sparseArrayValue, row * col, MPI_INT, i, 0, MPI_COMM_WORLD, &ireq);
+			MPI_Wait(&ireq, &istatus);
+
+			for(int j = 0; j < numRows; j++){
+				int value = sparseArrayValue[j];
+				if(totalNodes == 0){
+					root = malloc(sizeof(struct node));
+					child = root;
+				}else{
+					child->next = malloc(sizeof(struct node));
+					child = child->next;
+				}
+
+				child->row = sparseArrayRow[j];
+				child->col = sparseArrayCol[j];
+				child->value = value;
+				child->next = 0;
+
+				totalNodes++;
+			}
+		}
+
+	    //Print out the linked list
+	   for(int i = 0; i < row; i++){
+			for(int j = 0; j < col; j++)
+				printf("%d ", matrix[i][j]);
+			printf("\n");
+		}
+		printf("\n");
+I
+		printf("Runtime: %f seconds\n", ((double)(clock() - begin) / CLOCKS_PER_SEC));
+	}else if(loc_dim != 0){
+		//Send this processes sparse array to the parent process
+		MPI_Isend(&sparseArrayRow, sparseArraySize, MPI_INT, 0, 0, MPI_COMM_WORLD, &ireq);
+		MPI_Wait(&ireq, &istatus);
+		MPI_Isend(&sparseArrayCol, sparseArraySize, MPI_INT, 0, 0, MPI_COMM_WORLD, &ireq);
+		MPI_Wait(&ireq, &istatus);
+		MPI_Isend(&sparseArrayValue, sparseArraySize, MPI_INT, 0, 0, MPI_COMM_WORLD, &ireq);
+		MPI_Wait(&ireq, &istatus);
+	}
+
+	MPI_Finalize();
+
+	//--------------------------------------------------------------------
 
 
 
 	if(head != NULL)
 	{
-		printf("\n------ Deleting Linked List------");
+		printf("\n------ Deleting Linked List------\n");
 		dispose(head);
-		printf("\n");
+		printf("All done!\n");
 	}
 	else
 	{
