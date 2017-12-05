@@ -132,6 +132,7 @@ int main(int argc, char *argv[])
 	int rank;
 	int size = atoi(argv[1]);
 
+
 	//Initialize MPI and get rank and size
 	MPI_Init(NULL, NULL);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -245,6 +246,8 @@ int main(int argc, char *argv[])
 
 	//create an array that will hold values in linked for other processes
 	nodeArr*holder = malloc(num_Nodes*sizeof(nodeArr));
+
+
 	nodeArr*rec_buff = malloc(num_Nodes*sizeof(nodeArr));
 
 
@@ -272,9 +275,10 @@ int main(int argc, char *argv[])
 	int rem = num_Nodes % size;
 	int*sendcount = malloc(sizeof(int)*size);
 	int*displs = malloc(sizeof(int)*size);
+	int sum = 0;
 
 
-		
+	//calculate "chunk size" send counts and displacements
 	for (int i = 0; i < size; i++)
 	{
 		sendcount[i] = num_Nodes/size;
@@ -283,8 +287,12 @@ int main(int argc, char *argv[])
 			sendcount[i]++;
 			rem--;
 		}
+
+		displs[i] = sum;
+        sum += sendcount[i];
 	}
 
+	//divide data among processes dictated by sendcount and displs
 	MPI_Scatterv(&holder, sendcount, displs, nodeArr, &rec_buff, num_Nodes, nodeArr, 0, MPI_COMM_WORLD);
 
 
@@ -297,7 +305,7 @@ int main(int argc, char *argv[])
 	
 	if (rank == 0)
 	{
-		struct nodeArr*transpose = malloc(num_Nodes * sizeof(nodeArr));
+		nodeArr*transpose = malloc(num_Nodes * sizeof(nodeArr));
 	
 
 	MPI_Gather(&transpose, 1, nodeArr, transpose, 1, nodeArr, 0, MPI_COMM_WORLD);
