@@ -16,7 +16,7 @@ Linked List - http://www.zentut.com/c-tutorial/c-linked-list/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
+//#include <time.h>
 
 
 #define min(a,b) \
@@ -35,13 +35,15 @@ typedef struct node
 typedef struct nodeArr
 {
 	int i_Val, j_Val, v_Val;
-} nodeArr;
+
+}nodeArr;
+
+typedef void (*callback_1)(node* value);
 
 
-typedef void (*callback)(node* data);
 
 //helper function to help set up the nodes 
-node* create(int data,node* next, int row, int col)
+node* create(int data, node* next, int row, int col)
 {
     node* new_node = (node*)malloc(sizeof(node));
     if(new_node == NULL)
@@ -79,6 +81,9 @@ void print(node*head)
 		printf("\n");
 		reader = reader->next;
 	}
+
+	//set ptr to null
+	reader = NULL;
 }
 
 //Once all operations are done, deallocate memory
@@ -125,7 +130,7 @@ int main(int argc, char *argv[])
 	//variables for MPI, some values assign are temps
 	//NOTE: May need to change some values
 	int rank;
-	int size = argv[1];
+	int size = atoi(argv[1]);
 
 	//Initialize MPI and get rank and size
 	MPI_Init(NULL, NULL);
@@ -140,12 +145,12 @@ int main(int argc, char *argv[])
 	
 
 	//Keep track of the start time so we can calculate the runtime at the end.
-	clock_t begin;
+	//clock_t begin;
 
 	//Process zero is responsible for reading in the matrix from the file.
 	if(rank == 0)
 	{
-		begin = clock();
+		//begin = clock();
 
 		//Open the file for reading
 		FILE *fp = fopen("data", "r");
@@ -216,67 +221,74 @@ int main(int argc, char *argv[])
 	
 
 	}//0 ends
-		//-----------------------HERE: Main MPI Operation-----------------------
-
-
-		//specify MPI structure
-		int blocks[3] = {1,1,1};
-		MPI_Datatype types[3] = {MPI_INT, MPI_INT, MPI_INT};
-		MPI_Aint displacements[3];
-
-		MPI_Datatype n_NodeObj;
-		MPI_Aint intex;
-
-		MPI_Type_extent(MPI_INT, &intex);
-		displacements[0] = 0;
-		displacements[1] = intex;
-		displacements[2] = intex + intex;
-
-		MPI_Type_struct(3, blocks, displacements, types, &n_NodeObj);
-		MPI_Type_commit(n_NodeObj);
-
-
-		//create an array that will hold values in linked for other processes
-		nodeArr holder[] = malloc(num_Nodes*sizeof(nodeArr));
-		nodeArr rec_buff[] = malloc(num_Nodes*sizeof(nodeArr));
-
-
-
-		//control variable for storing the value into the nodeArr
-		int index = 0;
-
-		//pointer to head, used to read and store values in NodeArr struct
-		node*reader = head;
-
-		//need to put the head into struct
-		while (reader != NULL)
-		{
-			holder[index].v_Val = reader->value;
-			holder[index].i_Val = reader->i;
-			holder[index].j_Val = reader->j;
-
-			index++;
-			reader = reader->next;
-
-		}
-
-		int rem = num_Nodes % size;
-		int sendcount[] = malloc(sizeof(int)*size);
-		int displs[] = malloc(sizeof(int)*size);
 		
-		for (int i =0; i<size;i++)
+	//-----------------------HERE: Main MPI Operation-----------------------
+
+		
+
+	//specify MPI structure
+	int blocks[3] = {1,1,1};
+	MPI_Datatype types[3] = {MPI_INT, MPI_INT, MPI_INT};
+	MPI_Aint displacements[3];
+
+	MPI_Datatype n_NodeObj;
+	MPI_Aint intex;
+
+	MPI_Type_extent(MPI_INT, &intex);
+	displacements[0] = 0;
+	displacements[1] = intex;
+	displacements[2] = intex + intex;
+
+	MPI_Type_struct(3, blocks, displacements, types, &n_NodeObj);
+	MPI_Type_commit(n_NodeObj);
+
+
+	//create an array that will hold values in linked for other processes
+	nodeArr*holder = malloc(num_Nodes*sizeof(nodeArr));
+	nodeArr*rec_buff = malloc(num_Nodes*sizeof(nodeArr));
+
+
+	//control variable for storing the value into the nodeArr
+	int index = 0;
+
+	//pointer to head, used to read and store values in NodeArr struct
+	node*reader = head;
+
+	//need to put the head into struct
+	while (reader != NULL)
+	{
+		holder[index].v_Val = reader->value;
+		holder[index].i_Val = reader->i;
+		holder[index].j_Val = reader->j;
+
+		index++;
+		reader = reader->next;
+
+	}
+
+	//set ptr to null
+	reader = NULL;
+
+	int rem = num_Nodes % size;
+	int*sendcount = malloc(sizeof(int)*size);
+	int*displs = malloc(sizeof(int)*size);
+
+
+		
+	for (int i = 0; i < size; i++)
+	{
+		sendcount[i] = num_Nodes/size;
+		if(rem > 0)
 		{
-			sendcounts[i] = num_Nodes/size;
-			if(rem > 0)
-			{
-				sendcounts[i]++;
-				rem--;
-			}
+			sendcount[i]++;
+			rem--;
 		}
+	}
 
-		MPI_Scatterv(&holder,sendcounts,displs, nodeArr, &rec_buff, num_Nodes, nodeArr, 0, MPI_COMM_WORLD);
+	MPI_Scatterv(&holder, sendcount, displs, nodeArr, &rec_buff, num_Nodes, nodeArr, 0, MPI_COMM_WORLD);
 
-	for(int i =0; i<sendcounts[rank];i++ )
+
+	for(int i = 0; i < sendcount[rank]; i++ )
 	{
 		int temp = rec_buff[i].i_Val;
 		rec_buff[i].i_Val = rec_buff[i].j_Val;
@@ -285,14 +297,14 @@ int main(int argc, char *argv[])
 	
 	if (rank == 0)
 	{
-		nodeArr transpose[] = malloc(num_Nodes*sizeof(nodeArr));
-	}
+		struct nodeArr*transpose = malloc(num_Nodes * sizeof(nodeArr));
+	
 
 	MPI_Gather(&transpose, 1, nodeArr, transpose, 1, nodeArr, 0, MPI_COMM_WORLD);
 
 	if(rank == 0)
 	{
-		int count =0;
+		int count = 0;
 		//output matrix
 		for (int i = 0; i < m_Col; i++)
 		{
@@ -306,7 +318,7 @@ int main(int argc, char *argv[])
 				}
 				else
 				{
-					printf("0 ", );
+					printf("\n");
 				}
 
 			}
@@ -325,6 +337,11 @@ int main(int argc, char *argv[])
 	{
 		printf("\n------ Deleting Linked List------\n");
 		dispose(head);
+		free(holder);
+		free(transpose);
+		free(rec_buff);
+		free(sendcount);
+		free(displs);
 		printf("All done!\n");
 	}
 	else
