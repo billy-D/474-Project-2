@@ -225,8 +225,6 @@ int main(int argc, char *argv[])
 		
 	//-----------------------HERE: Main MPI Operation-----------------------
 
-		
-
 	//specify MPI structure
 	int blocks[3] = {1,1,1};
 	MPI_Datatype types[3] = {MPI_INT, MPI_INT, MPI_INT};
@@ -246,8 +244,7 @@ int main(int argc, char *argv[])
 
 	//create an array that will hold values in linked for other processes
 	nodeArr*holder = malloc(num_Nodes*sizeof(nodeArr));
-
-
+	//array for the recv buffer
 	nodeArr*rec_buff = malloc(num_Nodes*sizeof(nodeArr));
 
 
@@ -293,7 +290,7 @@ int main(int argc, char *argv[])
 	}
 
 	//divide data among processes dictated by sendcount and displs
-	MPI_Scatterv(&holder, sendcount, displs, nodeArr, &rec_buff, num_Nodes, nodeArr, 0, MPI_COMM_WORLD);
+	MPI_Scatterv(&holder, sendcount, displs, n_NodeObj, &rec_buff, num_Nodes, n_NodeObj, 0, MPI_COMM_WORLD);
 
 
 	for(int i = 0; i < sendcount[rank]; i++ )
@@ -303,13 +300,14 @@ int main(int argc, char *argv[])
 		rec_buff[i].j_Val = temp;
 	}
 	
+	//process 0, creates array that holds the new assoicated tranposed values
+	struct nodeArr*transpose = NULL;
 	if (rank == 0)
 	{
 		nodeArr*transpose = malloc(num_Nodes * sizeof(nodeArr));
 	}
 	
-
-	MPI_Gather(&transpose, 1, nodeArr, transpose, 1, nodeArr, 0, MPI_COMM_WORLD);
+	MPI_Gather(&transpose, sendcount, n_NodeObj, &transpose, 1, n_NodeObj, 0, MPI_COMM_WORLD);
 
 	if(rank == 0)
 	{
@@ -320,20 +318,19 @@ int main(int argc, char *argv[])
 			printf("/");
 			for(int j = 0; j < m_Row; j++)
 			{
-				if(transpose[count].i_Val == i &&transpose[count].jVal == j)
+				if(transpose[count].i_Val == i && transpose[count].j_Val == j)
 				{
 					printf("%d ", transpose[count].v_Val);
 					count++;
 				}
 				else
 				{
-					printf("\n");
+					printf("/");
 				}
 
 			}
 		}
 	}
-
 
 
 	MPI_Finalize();
