@@ -306,6 +306,7 @@ int main(int argc, char *argv[])
 	if (rank == 0)
 	{
 		nodeArr*transpose = malloc(num_Nodes * sizeof(nodeArr));
+	}
 	
 
 	MPI_Gather(&transpose, 1, nodeArr, transpose, 1, nodeArr, 0, MPI_COMM_WORLD);
