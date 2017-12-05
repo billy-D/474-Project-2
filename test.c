@@ -32,6 +32,8 @@ typedef struct node
 } node;
 
 
+
+//used with MPI
 typedef struct nodeArr
 {
 	int i_Val, j_Val, v_Val;
@@ -307,7 +309,8 @@ int main(int argc, char *argv[])
 		nodeArr*transpose = malloc(num_Nodes * sizeof(nodeArr));
 	}
 	
-	MPI_Gather(&transpose, sendcount, n_NodeObj, &transpose, 1, n_NodeObj, 0, MPI_COMM_WORLD);
+	//MPI_Gather(&transpose, 1, n_NodeObj, &transpose, 1, n_NodeObj, 0, MPI_COMM_WORLD);
+	MPI_Gather(&holder, sendcount, n_NodeObj, &transpose, num_Nodes, n_NodeObj, 0, MPI_COMM_WORLD);
 
 	if(rank == 0)
 	{
