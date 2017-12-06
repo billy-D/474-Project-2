@@ -304,10 +304,10 @@ int main(int argc, char *argv[])
 	
 	//process 0, creates array that holds the new assoicated tranposed values
 	struct nodeArr*transpose = NULL;
-	if (rank == 0)
-	{
+//	if (rank == 0)
+//	{
 		nodeArr*transpose = malloc(num_Nodes * sizeof(nodeArr));
-	}
+//	}
 	
 	//MPI_Gather(&transpose, 1, n_NodeObj, &transpose, 1, n_NodeObj, 0, MPI_COMM_WORLD);
 	MPI_Gather(&holder, sendcount, n_NodeObj, &transpose, num_Nodes, n_NodeObj, 0, MPI_COMM_WORLD);
