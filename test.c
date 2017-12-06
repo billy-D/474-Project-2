@@ -121,8 +121,8 @@ int main(int argc, char *argv[])
 	
 
 	//file read in operations
-	int m_Row = 8;
-	int m_Col = 6;
+	int m_Row;
+	int m_Col;
 	int f_row = 0;
 	int curr_Col_count = 0;
 	const char delimiter[1] = " ";
