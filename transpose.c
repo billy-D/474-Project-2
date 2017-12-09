@@ -2,14 +2,16 @@
 Author: Billy Dang, Sean McKean, Hassan Hamod
 Program: Project 2
 Date: 12/02/2017
-File: 
+File: transpose.c
 Description: Sparse Matrix, Matrix Tanspose
 
 
 Sources: 
 
 Linked List - http://www.zentut.com/c-tutorial/c-linked-list/
- 
+
+Docker MPI-Image
+docker run --rm -it -v $(pwd):/project nlknguyen/alpine-mpich
 
 ------------------=-------------------------------------------------*/
 #include <mpi.h>
@@ -121,8 +123,8 @@ int main(int argc, char *argv[])
 	
 
 	//file read in operations
-	int m_Row;
-	int m_Col;
+	int m_Row = 8;
+	int m_Col = 6;
 	int f_row = 0;
 	int curr_Col_count = 0;
 	const char delimiter[1] = " ";
@@ -132,7 +134,7 @@ int main(int argc, char *argv[])
 	//variables for MPI, some values assign are temps
 	//NOTE: May need to change some values
 	int rank;
-	int size = atoi(argv[1]);
+	int size;
 
 
 	//Initialize MPI and get rank and size
@@ -168,7 +170,7 @@ int main(int argc, char *argv[])
 		//Get number of columns out of 100 byte buffer from line two in the matrix
 		m_Col = atoi(fgets(line, BUFFER, fp));
 
-		//get the number of rows for the matrix
+		//get the number of rows to read in from file for the matrix
 		f_row = m_Col * m_Row;
 
 
@@ -223,7 +225,7 @@ int main(int argc, char *argv[])
 		print(head);
 	
 
-	}//0 ends
+	}
 		
 	//-----------------------HERE: Main MPI Operation-----------------------
 
@@ -240,15 +242,16 @@ int main(int argc, char *argv[])
 	displacements[1] = intex;
 	displacements[2] = intex + intex;
 
+
 	MPI_Type_struct(3, blocks, displacements, types, &n_NodeObj);
-	MPI_Type_commit(n_NodeObj);
+	MPI_Type_commit(&n_NodeObj);
 
 
 	//create an array that will hold values in linked for other processes
-	nodeArr*holder = malloc(num_Nodes*sizeof(nodeArr));
-	//array for the recv buffer
-	nodeArr*rec_buff = malloc(num_Nodes*sizeof(nodeArr));
+	nodeArr holder[num_Nodes];
 
+	//array for the recv buffer
+	nodeArr rec_buff[200];
 
 	//control variable for storing the value into the nodeArr
 	int index = 0;
@@ -271,6 +274,8 @@ int main(int argc, char *argv[])
 	//set ptr to null
 	reader = NULL;
 
+
+
 	int rem = num_Nodes % size;
 	int*sendcount = malloc(sizeof(int)*size);
 	int*displs = malloc(sizeof(int)*size);
@@ -291,74 +296,76 @@ int main(int argc, char *argv[])
         sum += sendcount[i];
 	}
 
+
+	//see what value is being sent
+	 if (0 == rank) 
+	 {
+        for (int i = 0; i < size; i++) 
+        {
+            printf("sendcount[%d] = %d\tdispls[%d] = %d\n", i, sendcount[i], i, displs[i]);
+        }
+   	 }
+
+
+   
 	//divide data among processes dictated by sendcount and displs
-	MPI_Scatterv(&holder, sendcount, displs, n_NodeObj, &rec_buff, num_Nodes, n_NodeObj, 0, MPI_COMM_WORLD);
+	MPI_Scatterv(&holder, sendcount, displs, n_NodeObj, &rec_buff, 200, n_NodeObj, 0, MPI_COMM_WORLD);
+
+	// print what values were delivered to each process 
+    printf("%d: ", rank);
+    for (int i = 0; i < sendcount[rank]; i++) 
+    {
+    	printf("%d\t", rec_buff[i].v_Val);
+   
+    }
+    printf("\n");
 
 
+	//i, j transpose ops
 	for(int i = 0; i < sendcount[rank]; i++ )
 	{
 		int temp = rec_buff[i].i_Val;
 		rec_buff[i].i_Val = rec_buff[i].j_Val;
 		rec_buff[i].j_Val = temp;
 	}
+
+
+	//have other process recieve values
+    MPI_Gatherv(rec_buff, num_Nodes, n_NodeObj, holder, sendcount, displs, n_NodeObj, 0, MPI_COMM_WORLD);
+
+
+
+    if(rank == 0)
+    {
+    	printf("----------Printing Transpose---------\n");
+    	for(int i = 0; i < index; i++)
+    	{
+    		
+			printf("%d\t", holder[i].v_Val);
+			printf("%d\t",holder[i].i_Val);
+			printf("%d\t",holder[i].j_Val);
+    	}
+
+    	printf("\n");
+    }
+  
+
 	
-	//process 0, creates array that holds the new assoicated tranposed values
-	struct nodeArr*transpose = NULL;
-//	if (rank == 0)
-//	{
-		nodeArr*transpose = malloc(num_Nodes * sizeof(nodeArr));
-//	}
-	
-	//MPI_Gather(&transpose, 1, n_NodeObj, &transpose, 1, n_NodeObj, 0, MPI_COMM_WORLD);
-	MPI_Gather(&holder, sendcount, n_NodeObj, &transpose, num_Nodes, n_NodeObj, 0, MPI_COMM_WORLD);
-
-	if(rank == 0)
-	{
-		int count = 0;
-		//output matrix
-		for (int i = 0; i < m_Col; i++)
-		{
-			printf("/");
-			for(int j = 0; j < m_Row; j++)
-			{
-				if(transpose[count].i_Val == i && transpose[count].j_Val == j)
-				{
-					printf("%d ", transpose[count].v_Val);
-					count++;
-				}
-				else
-				{
-					printf("/");
-				}
-
-			}
-		}
-	}
-
 
 	MPI_Finalize();
 
 	//--------------------------------------------------------------------
 
-
-
+	//deallocate memory 
 	if(head != NULL)
 	{
-		printf("\n------ Deleting Linked List------\n");
+		printf("\n------ Deallocating Memory------\n");
 		dispose(head);
-		free(holder);
-		free(transpose);
-		free(rec_buff);
 		free(sendcount);
 		free(displs);
 		printf("All done!\n");
 	}
-	else
-	{
-		printf("Nothing else to delete...");
-	}
-
-
+	
 	return 0;
 
 }
