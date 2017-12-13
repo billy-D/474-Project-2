@@ -168,12 +168,6 @@ int main(int argc, char *argv[])
         //Read in the size of the matrix
         const int BUFFER = 100;
         char line[BUFFER];
-        char ch;
-        int i = 0;
-        while(i < BUFFER && !isspace( ch = fgetc(fp)) && (ch != EOF)) {
-            line[i++] = ch;
-        }
-        int row = atoi(line);
 
         //Get number of columns out of 100 byte buffer from line two in the matrix
         m_Col = atoi(fgets(line, BUFFER, fp));
@@ -231,12 +225,12 @@ int main(int argc, char *argv[])
         fclose(fp);
 
         //print the linked list
-  //      print(head);
+        print(head);
 
 
     }
 
-   //-----------------------HERE: Main MPI Operation-----------------------
+    //-----------------------HERE: Main MPI Operation-----------------------
 
     //specify MPI structure
     int blocks[3] = {1,1,1};
@@ -254,6 +248,7 @@ int main(int argc, char *argv[])
 
     MPI_Type_struct(3, blocks, displacements, types, &n_NodeObj);
     MPI_Type_commit(&n_NodeObj);
+
 
     //create an array that will hold values in linked for other processes
     //all processes made the same array
@@ -319,7 +314,7 @@ int main(int argc, char *argv[])
 
     MPI_Finalize();
 
-    //--------------------------------------------------------------------
+   //--------------------------------------------------------------------
 
     //deallocate memory
     if(head != NULL)
