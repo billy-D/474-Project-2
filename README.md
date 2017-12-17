@@ -1,7 +1,7 @@
-# MPI: Matrix Transpose
+# MPI: Sparse Matrix Transpose
 
 ## Introductions
-Given a very large (n,m>10) matrix of n x m elements, write a distributed program in MPI that creates and outputs the transpose of the original matrix. There will be only one process with rank 0, that will read the file name with the input data, read from the file the values of n and m, read from the file the entire matrix, and will output the resulting matrix on the screen. All the other processes will receive portions of the matrix and contribute to creating the transposed matrix.
+Given a linked list with only the non-zero elements of a sparse matrix and their position in the matrix (the row and the column), creates and outputs the transpose of the original matrix. There will be only one process with rank 0, that will read the file name with the input data, read from the file the linked list. 
 
 ## Requirements
 - C++
