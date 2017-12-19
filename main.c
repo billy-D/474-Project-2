@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
     node*head = NULL;
 
 
-    //values used to store values into nodes
+    //variables used to help store values into nodes
     int num_insert = 0;
     int row_i = 0;
     int col_j = 0;
@@ -158,27 +158,34 @@ int main(int argc, char *argv[])
     {
         //begin = clock();
 
-        //Open the file for reading
+        //Use instance to, Open the file for reading
         FILE *fp = fopen("data.txt", "r");
 
-        if(fp == NULL) {
+        //check if the file exist
+        if(fp == NULL) 
+        {
             printf("Cannot open file \n") ;
             exit(0);
         }
+
         //Read in the size of the matrix
         const int BUFFER = 100;
         char line[BUFFER];
+        
 
-        //Get number of columns out of 100 byte buffer from line two in the matrix
+        //get number of rows
+        m_Row = atoi(fgets(line,BUFFER,fp));
+
+        //Get number of columns 
         m_Col = atoi(fgets(line, BUFFER, fp));
 
-        //get the number of rows to read in from file for the matrix
-        f_row = m_Col * m_Row;
-        printf("Row%d and clo%d/n", m_Row, m_Col);
+        //TEST: print number of rows and cols
+        printf("Num Row %d\n", m_Row);
+        printf("Num Col %d\n", m_Col);
 
-
+   
         //READ FROM FILE
-        for(int i = 0; i < f_row; i++)
+        for(int i = 0; i < m_Row; i++)
         {
             //Read a line up to the newline character
             fgets(line, BUFFER, fp);
