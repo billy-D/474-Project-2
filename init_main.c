@@ -284,7 +284,7 @@ int main(int argc, char *argv[])
 
 
 
-    int rem = num_Nodes % size;
+    int rem = size % size;
     int*sendcount = malloc(sizeof(int)*size);
     int*displs = malloc(sizeof(int)*size);
     int sum = 0;
@@ -293,7 +293,7 @@ int main(int argc, char *argv[])
     //calculate "chunk size" send counts and displacements
     for (int i = 0; i < size; i++)
     {
-        sendcount[i] = num_Nodes/size;
+        sendcount[i] = (size*size)/size;
         if(rem > 0)
         {
             sendcount[i]++;
@@ -304,9 +304,6 @@ int main(int argc, char *argv[])
         sum += sendcount[i];
     }
 
-    MPI_Scatterv(&send_Buff, sendcount, displs, n_NodeObj, &rec_Buff, 200, n_NodeObj, 0, MPI_COMM_WORLD);
-
-
     //see how many value are being sent to each of the processes
     if (0 == rank)
     {
@@ -315,17 +312,27 @@ int main(int argc, char *argv[])
             printf("sendcount[%d] = %d\tdispls[%d] = %d\n", i, sendcount[i], i, displs[i]);
         }
     }
+    
+    //
+    MPI_Scatterv(send_Buff, sendcount, displs, n_NodeObj, rec_Buff, 100, n_NodeObj, 0, MPI_COMM_WORLD);
 
-    MPI_Gatherv(rec_Buff, 200, n_NodeObj, final_Buff, sendcount, displs, n_NodeObj, 0, MPI_COMM_WORLD);
+
 
     // print what values were delivered to each process 
     printf("%d: ", rank);
     for (int i = 0; i < sendcount[rank]; i++) 
     {
-     	printf("%d\t", final_Buff[i].v_Val);
+     	printf("%d\t", rec_Buff[i].v_Val);     
     
     }
     printf("\n");
+
+    
+   // MPI_Gatherv(rec_Buff, 2 , n_NodeObj, send_Buff, sendcount, displs, n_NodeObj, 0, MPI_COMM_WORLD);
+    
+
+
+    
 
 
     MPI_Finalize();
