@@ -172,12 +172,7 @@ int main(int argc, char *argv[])
 
         //Get number of columns 
         m_Col = atoi(fgets(line, BUFFER, fp));
-
-        //TEST: print number of rows and cols
-        printf("Num Row %d\n", m_Row);
-        printf("Num Col %d\n", m_Col);
-
-   
+  
         //READ FROM FILE
         for(int i = 0; i < m_Row; i++)
         {
@@ -225,12 +220,9 @@ int main(int argc, char *argv[])
         //Close the file
         fclose(fp);
 
-        //print the linked list
-        print(head);
-
-
     }
 
+    
     //-----------------------HERE: Main MPI Operation-----------------------
 
     //specify MPI structure
@@ -307,7 +299,7 @@ int main(int argc, char *argv[])
     //
     MPI_Scatterv(send_Buff, sendcount, displs, n_NodeObj, rec_Buff, 100, n_NodeObj, 0, MPI_COMM_WORLD);
 
-    //i, j transpose ops
+    //perform i, j transpose operations
 	for(int i = 0; i < sendcount[rank]; i++ )
 	{
 		int temp = rec_Buff[i].i_Val;
@@ -315,10 +307,9 @@ int main(int argc, char *argv[])
 		rec_Buff[i].j_Val = temp;
 	}
 
-
    
-    // print what values were delivered to each process 
-    printf("\n%d: ", rank);
+    // print what values were delivered to each process after transpose
+    printf("\nProcess %d: ", rank);
     for (int i = 0; i < sendcount[rank]; i++) 
     {
     
@@ -330,11 +321,9 @@ int main(int argc, char *argv[])
     printf("\n");
 
     
-   // MPI_Gatherv(rec_Buff, 2 , n_NodeObj, send_Buff, sendcount, displs, n_NodeObj, 0, MPI_COMM_WORLD);
+    //MPI_Gatherv(rec_Buff, 2 , n_NodeObj, send_Buff, sendcount, displs, n_NodeObj, 0, MPI_COMM_WORLD);
     
 
-
-    
 
 
     MPI_Finalize();
