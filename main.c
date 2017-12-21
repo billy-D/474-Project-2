@@ -20,7 +20,7 @@ docker run --rm -it -v $(pwd):/project nlknguyen/alpine-mpich
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
-//#include <time.h>
+
 
 
 typedef struct node
@@ -102,6 +102,7 @@ int main(int argc, char *argv[])
 
     //linked list
     node*head = NULL;
+    node*reader = head;
 
     //variables used to help store values into nodes
     int num_insert = 0;
@@ -115,8 +116,6 @@ int main(int argc, char *argv[])
     int curr_Col_count = 0;
     const char delimiter[1] = " ";
     int num_Nodes = 0;
-    const int BUFFER = 100; 
-    char line[BUFFER];
 
 
     //finding max of i's and j's + store values into original matrix
@@ -127,11 +126,10 @@ int main(int argc, char *argv[])
 
     //variables for MPI, some values assign are temps
     //NOTE: May need to change some values
-
-
-
+    int send[4], recv[3];
     int rank;
     int size;
+    int k;
 
 
     //Initialize MPI and get rank and size
@@ -139,20 +137,18 @@ int main(int argc, char *argv[])
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
+    //revise later
     if(size == 1)
     {
         printf("This program must be run with a minimum of 2 processes (-n 2)\n");
+        MPI_Abort(MPI_COMM_WORLD, 1);
         return -1;
     }
 
 
-    //Keep track of the start time so we can calculate the runtime at the end.
-    //clock_t begin;
-
     //Process zero is responsible for reading in the matrix from the file.
     if(rank == 0)
     {
-        //begin = clock();
 
         //Use instance to, Open the file for reading
         FILE *fp = fopen("data.txt", "r");
@@ -163,6 +159,9 @@ int main(int argc, char *argv[])
             printf("Cannot open file \n") ;
             exit(0);
         }
+
+        const int BUFFER = 100; 
+        char line[BUFFER];
         
         //get number of rows
         m_Row = atoi(fgets(line,BUFFER,fp));
@@ -231,7 +230,7 @@ int main(int argc, char *argv[])
 
 
         //pointer to head, assist in reading values from linked list into our designated arrays
-        node*reader = head;
+        reader = head;
 
 
         //variables for finding dimension of matrix
@@ -285,7 +284,12 @@ int main(int argc, char *argv[])
         printf("Max Col %d\n", max_Col);
 
        
-        //Create the origianl matrix and allocate space, intitalize and set values to 0
+    
+    } //end of process 0
+
+    //-----------------------HERE: Main MPI Operation-----------------------
+
+     //Create the origianl matrix and allocate space, intitalize and set values to 0
         int *matrix = (int*) malloc(max_Row * max_Col * sizeof(int));
         for(int i = 0; i < max_Row; i++)
             {
@@ -346,12 +350,6 @@ int main(int argc, char *argv[])
             }
 
         }
-    
-
-
-    } //end of process 0
-
-    //-----------------------HERE: Main MPI Operation-----------------------
 
    
 
