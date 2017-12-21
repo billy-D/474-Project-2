@@ -253,13 +253,13 @@ int main(int argc, char *argv[])
 
     //create an array that will hold values in linked for other processes
     //all processes made the same array
-    nodeArr send_Buff[100];
+    nodeArr send_Buff[100] = {0};
    
     //array for the recv buffer
-    nodeArr rec_Buff[100];
+    nodeArr rec_Buff[100] = {0};
 
     //last destination when all ops are completed buffer to be sent to
-    nodeArr final_Buff[100];
+    nodeArr final_Buff[100] = {0};
 
     //control variable for storing the value into the nodeArr
     int index = 0;
