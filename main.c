@@ -22,7 +22,7 @@ docker run --rm -it -v $(pwd):/project nlknguyen/alpine-mpich
 #include <string.h>
 
 
-//Linked list to read in the data from the text file
+
 typedef struct node
 {
     int i, j, value;
@@ -102,6 +102,7 @@ int main(int argc, char *argv[])
 
     //linked list
     node*head = NULL;
+    node*reader = head;
 
     //variables used to help store values into nodes
     int num_insert = 0;
@@ -115,8 +116,6 @@ int main(int argc, char *argv[])
     int curr_Col_count = 0;
     const char delimiter[1] = " ";
     int num_Nodes = 0;
-    const int BUFFER = 100;
-    char line[BUFFER];
 
 
     //finding max of i's and j's + store values into original matrix
@@ -127,11 +126,10 @@ int main(int argc, char *argv[])
 
     //variables for MPI, some values assign are temps
     //NOTE: May need to change some values
-
-
-
+    int send[4], recv[3];
     int rank;
     int size;
+    int k;
 
 
     //Initialize MPI and get rank and size
@@ -139,29 +137,32 @@ int main(int argc, char *argv[])
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
+    //revise later
     if(size == 1)
     {
         printf("This program must be run with a minimum of 2 processes (-n 2)\n");
+        MPI_Abort(MPI_COMM_WORLD, 1);
         return -1;
     }
 
 
-    //Keep track of the start time so we can calculate the runtime at the end.
-    //clock_t begin;
-
     //Process zero is responsible for reading in the matrix from the file.
     if(rank == 0)
     {
+
         //Use instance to, Open the file for reading
         FILE *fp = fopen("data.txt", "r");
 
         //check if the file exist
-        if(fp == NULL)
+        if(fp == NULL) 
         {
             printf("Cannot open file \n") ;
             exit(0);
         }
 
+        const int BUFFER = 100; 
+        char line[BUFFER];
+        
         //get number of rows
         m_Row = atoi(fgets(line,BUFFER,fp));
 
@@ -172,7 +173,7 @@ int main(int argc, char *argv[])
         printf("Number of Rows %d\n", m_Row);
         printf("Num of Col %d\n", m_Col);
 
-
+   
         //READ FROM FILE
         for(int i = 0; i < m_Row; i++)
         {
@@ -229,7 +230,7 @@ int main(int argc, char *argv[])
 
 
         //pointer to head, assist in reading values from linked list into our designated arrays
-        node*reader = head;
+        reader = head;
 
 
         //variables for finding dimension of matrix
@@ -267,11 +268,11 @@ int main(int argc, char *argv[])
                 max_Row = i_Array[i];
             }
 
-            if(max_Col < j_Array[i])
+             if(max_Col < j_Array[i])
             {
                 max_Col = j_Array[i];
             }
-
+            
         }
 
         //add 1 to get the actual size dimension of matrix
@@ -282,18 +283,23 @@ int main(int argc, char *argv[])
         printf("Max Row %d\n", max_Row);
         printf("Max Col %d\n", max_Col);
 
+       
+    
+    } //end of process 0
 
-        //Create the original matrix and allocate space, initialize and set values to 0
+    //-----------------------HERE: Main MPI Operation-----------------------
+
+     //Create the origianl matrix and allocate space, intitalize and set values to 0
         int *matrix = (int*) malloc(max_Row * max_Col * sizeof(int));
         for(int i = 0; i < max_Row; i++)
-        {
-            for(int j = 0; j < max_Col; j++)
             {
-                *(matrix + i*max_Col + j) = 0;
+                for(int j = 0; j < max_Col; j++)
+                {   
+                    *(matrix + i*max_Col + j) = 0;   
+                }
             }
-        }
 
-
+        
         //reuse some of the old variables to help store values into original matrix
         temp_Val = 0;
         temp_i = 0;
@@ -321,7 +327,7 @@ int main(int argc, char *argv[])
                     }
                 }
             }
-
+            
             //Traverse to the next node in linked list
             reader = reader->next;
 
@@ -345,26 +351,20 @@ int main(int argc, char *argv[])
 
         }
 
-
-
-    } //end of process 0
-
-    //-----------------------HERE: Main MPI Operation-----------------------
-
-
+   
 
 
 
     MPI_Finalize();
 
-    //--------------------------------------------------------------------
+   //--------------------------------------------------------------------
 
     //deallocate memory
     if(head != NULL)
     {
         printf("\n------ Deallocating Memory------\n");
         dispose(head);
-
+       
         //free(sendcount);
         //free(displs);
         printf("All done!\n");
