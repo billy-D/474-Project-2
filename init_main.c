@@ -19,15 +19,15 @@ docker run --rm -it -v $(pwd):/project nlknguyen/alpine-mpich
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
+//#include <time.h>
 
 
-
-//Linked list for text file
 typedef struct node
 {
     int i, j, value;
     struct node *next;
 } node;
+
 
 
 //used with MPI
@@ -38,6 +38,7 @@ typedef struct nodeArr
 }nodeArr;
 
 typedef void (*callback_1)(node* value);
+
 
 
 //helper function to help set up the nodes
@@ -155,7 +156,7 @@ int main(int argc, char *argv[])
         FILE *fp = fopen("data.txt", "r");
 
         //check if the file exist
-        if(fp == NULL)
+        if(fp == NULL) 
         {
             printf("Cannot open file \n") ;
             exit(0);
@@ -164,19 +165,19 @@ int main(int argc, char *argv[])
         //Read in the size of the matrix
         const int BUFFER = 100;
         char line[BUFFER];
-
+        
 
         //get number of rows
         m_Row = atoi(fgets(line,BUFFER,fp));
 
-        //Get number of columns
+        //Get number of columns 
         m_Col = atoi(fgets(line, BUFFER, fp));
 
         //TEST: print number of rows and cols
         printf("Num Row %d\n", m_Row);
         printf("Num Col %d\n", m_Col);
 
-
+   
         //READ FROM FILE
         for(int i = 0; i < m_Row; i++)
         {
@@ -252,12 +253,13 @@ int main(int argc, char *argv[])
 
     //create an array that will hold values in linked for other processes
     //all processes made the same array
-    nodeArr *holder;
-    holder = (nodeArr *) malloc(num_Nodes);
-
-
+    nodeArr send_Buff[100];
+   
     //array for the recv buffer
-    nodeArr rec_buff[200];
+    nodeArr rec_Buff[100];
+
+    //last destination when all ops are completed buffer to be sent to
+    nodeArr final_Buff[100];
 
     //control variable for storing the value into the nodeArr
     int index = 0;
@@ -268,9 +270,9 @@ int main(int argc, char *argv[])
     //need to put the head into struct
     while (reader != NULL )
     {
-        holder[index].v_Val = reader->value;
-        holder[index].i_Val = reader->i;
-        holder[index].j_Val = reader->j;
+        send_Buff[index].v_Val = reader->value;
+        send_Buff[index].i_Val = reader->i;
+        send_Buff[index].j_Val = reader->j;
 
         index++;
         reader = reader->next;
@@ -302,8 +304,10 @@ int main(int argc, char *argv[])
         sum += sendcount[i];
     }
 
+    MPI_Scatterv(&send_Buff, sendcount, displs, n_NodeObj, &rec_Buff, 200, n_NodeObj, 0, MPI_COMM_WORLD);
 
-    //see what value is being sent
+
+    //see how many value are being sent to each of the processes
     if (0 == rank)
     {
         for (int i = 0; i < size; i++)
@@ -312,9 +316,21 @@ int main(int argc, char *argv[])
         }
     }
 
+    MPI_Gatherv(rec_Buff, 200, n_NodeObj, final_Buff, sendcount, displs, n_NodeObj, 0, MPI_COMM_WORLD);
+
+    // print what values were delivered to each process 
+    printf("%d: ", rank);
+    for (int i = 0; i < sendcount[rank]; i++) 
+    {
+     	printf("%d\t", final_Buff[i].v_Val);
+    
+    }
+    printf("\n");
+
+
     MPI_Finalize();
 
-    //--------------------------------------------------------------------
+   //--------------------------------------------------------------------
 
     //deallocate memory
     if(head != NULL)
