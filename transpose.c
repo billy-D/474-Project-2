@@ -7,13 +7,12 @@ Description: Sparse Matrix, Matrix Tanspose
 
 
 Sources:
-
 Linked List - http://www.zentut.com/c-tutorial/c-linked-list/
 
 Docker MPI-Image
 docker run --rm -it -v $(pwd):/project nlknguyen/alpine-mpich
 
-------------------=-------------------------------------------------*/
+-------------------------------------------------------------------*/
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,7 +20,7 @@ docker run --rm -it -v $(pwd):/project nlknguyen/alpine-mpich
 #include <string.h>
 
 
-
+//Struct will help us create the linked list
 typedef struct node
 {
     int i, j, value;
@@ -30,13 +29,16 @@ typedef struct node
 
 
 
-//used with MPI
+//Struct designed to be used with MPI
+//sending data to other processes
 typedef struct nodeArr
 {
     int i_Val, j_Val, v_Val;
 
 }nodeArr;
 
+//reference function so that we don't have to define the struct node everytime
+//we create a new pointer
 typedef void (*callback_1)(node* value);
 
 
@@ -59,6 +61,7 @@ node* create(int data, node* next, int row, int col)
 }
 
 //main function to be called in program to start the node making process
+//creating the list itself
 node* prepend(node* head,int data, int i, int j)
 {
     node* new_node = create(data,head,i,j);
@@ -67,15 +70,16 @@ node* prepend(node* head,int data, int i, int j)
 }
 
 
-//TEST:print the linked list
+//Print the linked list
 void print(node*head)
 {
+    printf("\n-----------Values Read in from file to linked list------------------\n");
     node* reader = head;
     while(reader != NULL)
     {
-        printf("%d ", reader->value);
-        printf("%d ", reader->i);
-        printf("%d ", reader->j);
+        printf("Value: %d ", reader->value);
+        printf("row: %d ", reader->i);
+        printf("col: %d ", reader->j);
 
         printf("\n");
         reader = reader->next;
@@ -84,6 +88,7 @@ void print(node*head)
     //set ptr to null
     reader = NULL;
 }
+
 
 //Once all operations are done, deallocate memory
 void dispose(node *head)
@@ -125,6 +130,8 @@ int main(int argc, char *argv[])
     int curr_Col_count = 0;
     const char delimiter[1] = " ";
     int num_Nodes = 0;
+    //control variable for storing the value into the nodeArr
+    int index = 0;
 
 
 
@@ -156,10 +163,6 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-
-    //Keep track of the start time so we can calculate the runtime at the end.
-    //clock_t begin;
-
     //Process zero is responsible for reading in the matrix from the file.
     if(rank == 0)
     {
@@ -184,7 +187,7 @@ int main(int argc, char *argv[])
         //Get number of columns 
         m_Col = atoi(fgets(line, BUFFER, fp));
   
-        //READ FROM FILE
+        //READ FROM FILE, the data for the linked list
         for(int i = 0; i < m_Row; i++)
         {
             //Read a line up to the newline character
@@ -229,11 +232,11 @@ int main(int argc, char *argv[])
 
         //Close the file
         fclose(fp);
+        print(head);
 
 
         //pointer to head, assist in reading values from linked list into our designated arrays
         reader = head;
-
 
         //variables for finding dimension of matrix
         i_Array = malloc(num_Nodes*sizeof(int));
@@ -246,6 +249,7 @@ int main(int argc, char *argv[])
             temp_i = reader->i;
             temp_j = reader->j;
 
+            //check if index2 does not surpass the buffer size by using num_Nodes
             if(index2 != num_Nodes)
             {
                 i_Array[index2] = temp_i;
@@ -262,7 +266,6 @@ int main(int argc, char *argv[])
         //Need to determine max of i and j for size of matrix
         max_Row = i_Array[0];
         max_Col = j_Array[0];
-
         for(int i = 0; i < num_Nodes; i++)
         {
             if(max_Row < i_Array[i])
@@ -292,7 +295,6 @@ int main(int argc, char *argv[])
             }
         }
 
-        
         //reuse some of the old variables to help store values into original matrix
         temp_Val = 0;
         temp_i = 0;
@@ -301,6 +303,7 @@ int main(int argc, char *argv[])
         //Note: Set reader back to head
         reader = head;
 
+        //again go through the list, and put values into corresponding location in matrix
         while (reader != NULL)
         {
             temp_Val = reader->value;
@@ -330,6 +333,7 @@ int main(int argc, char *argv[])
         reader = NULL;
 
 
+        //print the original matrix
         printf("\nOriginal Matrix\n\n");
         for(int i = 0; i < max_Row; i++)
         {
@@ -344,7 +348,7 @@ int main(int argc, char *argv[])
 
         }
 
-        printf("\n-------------Performing Transpose Operations on Coordinates-----------\n\n");
+        printf("\n-----------Outputting Values Sent to Processes-----------\n\n");
 
 
     }
@@ -352,7 +356,10 @@ int main(int argc, char *argv[])
     
     //-----------------------HERE: Main MPI Operation-----------------------
 
-    //specify MPI structure
+    //specify MPI structure, since we aren't using just a single type of data
+    //dealing with multiple types of data, at the same time we want our value 
+    //to correspond with its location. Hence the use of struct since MPI can
+    //deal with it
     int blocks[3] = {1,1,1};
     MPI_Datatype types[3] = {MPI_INT, MPI_INT, MPI_INT};
     MPI_Aint displacements[3];
@@ -380,9 +387,6 @@ int main(int argc, char *argv[])
     //last destination when all ops are completed buffer to be sent to
     nodeArr final_Buff[100] = {0};
 
-    //control variable for storing the value into the nodeArr
-    int index = 0;
-
     //pointer to head, used to read and store values in NodeArr struct
     reader = head;
 
@@ -402,7 +406,7 @@ int main(int argc, char *argv[])
     reader = NULL;
 
 
-
+    //Needed for MPI scatterv and gatherv
     int rem = size % size;
     int*sendcount = malloc(sizeof(int)*size);
     int*displs = malloc(sizeof(int)*size);
@@ -423,7 +427,7 @@ int main(int argc, char *argv[])
         sum += sendcount[i];
     }
 
-    //
+    //Send parts of data to processes
     MPI_Scatterv(send_Buff, sendcount, displs, n_NodeObj, rec_Buff, 100, n_NodeObj, 0, MPI_COMM_WORLD);
 
     //perform i, j transpose operations
@@ -441,8 +445,6 @@ int main(int argc, char *argv[])
     {
     
      	printf("Value: %d\t", rec_Buff[i].v_Val);
-        printf("row: %d\t", rec_Buff[i].i_Val);
-        printf("col: %d\t", rec_Buff[i].j_Val);
     
     }
     printf("\n");
@@ -451,6 +453,7 @@ int main(int argc, char *argv[])
     //NOTE: Gatherv works if recvcout = 2, if 1, 2 of the values are butchered
     //Solution, recvcount should be the value of the number of processes given
     //Or else the values would get butchered
+    //Collect the data into another buffer, for us to use (final_Buff)
     MPI_Gatherv(rec_Buff, size, n_NodeObj, final_Buff, sendcount, displs, n_NodeObj, 0, MPI_COMM_WORLD);
 
 
@@ -469,7 +472,7 @@ int main(int argc, char *argv[])
             printf("\n");
         }
 
-
+        //allocate space for the matrix transpose
         transpose = (int*) malloc(max_Row * max_Col * sizeof(int));
         for(int  i = 0; i < max_Row; i++)
         {
@@ -501,7 +504,7 @@ int main(int argc, char *argv[])
                 {   
                      if(temp_i == i && temp_j == j)
                     {
-                        *(matrix + i*max_Col + j) = temp_Val;
+                        *(transpose + i*max_Col + j) = temp_Val;
                     }
                 }
             }
@@ -512,7 +515,7 @@ int main(int argc, char *argv[])
         {
             for(int j = 0; j < max_Col; j++)
             {
-                printf("%d  ",  *(matrix + i*max_Col + j));
+                printf("%d  ",  *(transpose + i*max_Col + j));
                 if (j == max_Col - 1)
                 {
                     printf("\n\n");

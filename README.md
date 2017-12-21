@@ -18,7 +18,18 @@ Given a linked list with only the non-zero elements of a sparse matrix and their
 
 
 ## How to Run
-1. Go to 
+1. If you are using a docker image with MPI, boot up docker and run the image by entering "docker run --rm -it -v $(pwd):/project nlknguyen/alpine-mpich"
+2. Go to the directory containing transpose.c
+3. Compile the code, "mpicc -o a transpose.c"
+4. Run the object code, "mpirun -n number_of_processe ./a" 
+
+
+## Note
+- Processes that aren't assigned, are by defualt given all 0's
+- If creating a new data.tx file 
+- Format should be first row: # of rows, second row: # of columns, for the linked list: value to put into matrix, coordinate row_i, coordinate row_j  
+
+
 
 
 
