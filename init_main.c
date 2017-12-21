@@ -304,25 +304,27 @@ int main(int argc, char *argv[])
         sum += sendcount[i];
     }
 
-    //see how many value are being sent to each of the processes
-    if (0 == rank)
-    {
-        for (int i = 0; i < size; i++)
-        {
-            printf("sendcount[%d] = %d\tdispls[%d] = %d\n", i, sendcount[i], i, displs[i]);
-        }
-    }
-    
     //
     MPI_Scatterv(send_Buff, sendcount, displs, n_NodeObj, rec_Buff, 100, n_NodeObj, 0, MPI_COMM_WORLD);
 
+    //i, j transpose ops
+	for(int i = 0; i < sendcount[rank]; i++ )
+	{
+		int temp = rec_Buff[i].i_Val;
+		rec_Buff[i].i_Val = rec_Buff[i].j_Val;
+		rec_Buff[i].j_Val = temp;
+	}
 
 
+   
     // print what values were delivered to each process 
-    printf("%d: ", rank);
+    printf("\n%d: ", rank);
     for (int i = 0; i < sendcount[rank]; i++) 
     {
-     	printf("%d\t", rec_Buff[i].v_Val);     
+    
+     	printf("Value: %d\t", rec_Buff[i].v_Val);
+        printf("row: %d\t", rec_Buff[i].i_Val);
+        printf("col: %d\t", rec_Buff[i].j_Val);
     
     }
     printf("\n");
