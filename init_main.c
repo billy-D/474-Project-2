@@ -19,21 +19,15 @@ docker run --rm -it -v $(pwd):/project nlknguyen/alpine-mpich
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
-//#include <time.h>
 
 
-#define min(a,b) \
-   ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-     _a < _b ? _a : _b; })
 
-
+//Linked list for text file
 typedef struct node
 {
     int i, j, value;
     struct node *next;
 } node;
-
 
 
 //used with MPI
@@ -44,7 +38,6 @@ typedef struct nodeArr
 }nodeArr;
 
 typedef void (*callback_1)(node* value);
-
 
 
 //helper function to help set up the nodes
@@ -162,7 +155,7 @@ int main(int argc, char *argv[])
         FILE *fp = fopen("data.txt", "r");
 
         //check if the file exist
-        if(fp == NULL) 
+        if(fp == NULL)
         {
             printf("Cannot open file \n") ;
             exit(0);
@@ -171,19 +164,19 @@ int main(int argc, char *argv[])
         //Read in the size of the matrix
         const int BUFFER = 100;
         char line[BUFFER];
-        
+
 
         //get number of rows
         m_Row = atoi(fgets(line,BUFFER,fp));
 
-        //Get number of columns 
+        //Get number of columns
         m_Col = atoi(fgets(line, BUFFER, fp));
 
         //TEST: print number of rows and cols
         printf("Num Row %d\n", m_Row);
         printf("Num Col %d\n", m_Col);
 
-   
+
         //READ FROM FILE
         for(int i = 0; i < m_Row; i++)
         {
@@ -321,7 +314,7 @@ int main(int argc, char *argv[])
 
     MPI_Finalize();
 
-   //--------------------------------------------------------------------
+    //--------------------------------------------------------------------
 
     //deallocate memory
     if(head != NULL)
