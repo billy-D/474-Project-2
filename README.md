@@ -26,8 +26,7 @@ Given a linked list with only the non-zero elements of a sparse matrix and their
 
 ## Note
 - Processes that aren't assigned, are by defualt given all 0's
-- If creating a new data.tx file 
-- Format should be first row: # of rows, second row: # of columns, for the linked list: value to put into matrix, coordinate row_i, coordinate row_j  
+- If creating a new data.txt file, format should be first row: # of rows, second row: # of columns, for the linked list: value to put into matrix, coordinate row_i, coordinate row_j  
 
 
 
